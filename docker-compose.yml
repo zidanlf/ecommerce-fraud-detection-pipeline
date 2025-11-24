@@ -1,59 +1,63 @@
 version: '3.8'
 
+# --- COMMON AIRFLOW SERVICE DEFINITION ---
 x-airflow-common: &airflow-common
   build: .
   environment:
     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/final_project_db
-    - AIRFLOW__CORE__LOAD_EXAMPLES=False
-    - AIRFLOW_CONN_POSTGRES_DEFAULT=postgresql://airflow:airflow@postgres:5432/final_project_db
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-airflow/airflow
+    - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+    - AIRFLOW__CORE__LOAD_EXAMPLES=false
+    - AIRFLOW_CONN_POSTGRES_DEFAULT=postgresql://airflow:airflow@postgres-project:5432/final_project_db
     - PYTHONPATH=/opt/airflow
   volumes:
     - ./dags:/opt/airflow/dags
     - ./scripts:/opt/airflow/scripts
-    - ./dashboard:/app/dashboard
+    - ./streaming:/opt/airflow/streaming
   depends_on:
-    postgres:
+    postgres-airflow:
+      condition: service_healthy
+    postgres-project:
       condition: service_healthy
 
+# --- SERVICES DEFINITION ---
 services:
-  postgres:
-    image: postgres:13
-    container_name: postgres_db
+  postgres-project:
+    image: postgres:15
+    container_name: postgres_project
     environment:
-      - POSTGRES_USER=airflow
-      - POSTGRES_PASSWORD=airflow
-      - POSTGRES_DB=final_project_db
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: final_project_db
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres-project-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 5s
       retries: 5
+    restart: always
 
-  # --- SERVICE 1: INISIALISASI (Jalan Sekali lalu Mati) ---
-  airflow-init:
-    <<: *airflow-common
-    container_name: airflow_init
-    command: >
-      bash -c "airflow db init &&
-      airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com"
-
-  # --- SERVICE 2: SERVER UTAMA (Menunggu Inisialisasi) ---
-  airflow:
-    <<: *airflow-common
-    container_name: airflow_webserver
+  # --- AIRFLOW POSTGRESQL DATABASE ---
+  postgres-airflow:
+    image: postgres:15
+    container_name: postgres_airflow
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
     ports:
-      - "8080:8080"
-    command: bash -c "airflow scheduler & airflow webserver"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      airflow-init:
-        condition: service_completed_successfully
+      - "5434:5432"
+    volumes:
+      - postgres-airflow-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+    restart: always
 
+  # --- KAFKA SERVICES ---
   zookeeper:
     image: wurstmeister/zookeeper
     container_name: zookeeper
@@ -66,11 +70,52 @@ services:
     ports:
       - "9092:9092"
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: localhost
+      KAFKA_ADVERTISED_HOST_NAME: kafka 
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_CREATE_TOPICS: "orders:1:1"
     depends_on:
       - zookeeper
 
+  # --- AIRFLOW SERVICES ---
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow_webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    restart: always
+    depends_on:
+      postgres-airflow:
+        condition: service_healthy
+      postgres-project:
+        condition: service_healthy
+      # TAMBAHAN PENTING: Tunggu sampai init selesai sukses!
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow_scheduler
+    command: scheduler
+    restart: always
+    depends_on:
+      postgres-airflow:
+        condition: service_healthy
+      postgres-project:
+        condition: service_healthy
+      # TAMBAHAN PENTING: Tunggu sampai init selesai sukses!
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow_init
+    command: >
+      bash -c "airflow db init &&
+      airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com"
+    depends_on:
+      postgres-airflow:
+        condition: service_healthy
 volumes:
-  postgres_data:
+  postgres-project-data:
+  postgres-airflow-data:

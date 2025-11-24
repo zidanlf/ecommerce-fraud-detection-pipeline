@@ -1,17 +1,26 @@
 import json
 import psycopg2
-import requests # Library untuk kirim notifikasi
+import requests 
+import os # Tambahan import os
 from kafka import KafkaConsumer
 from datetime import datetime
 
 # --- KONFIGURASI ---
 DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1441332811796578416/2YH6t5qs6qPpkFTFhqwh3_Nue49wpT2cWIljnSHOtwwk_yt-1LLdNDY5N3NioM5byd3Q"
 
+# Ambil konfigurasi dari Environment Variable (Agar fleksibel)
+# Default host kita set ke 'postgres-project' sesuai nama service di docker-compose baru
+KAFKA_HOST = os.getenv('KAFKA_HOST', 'kafka')
+PG_HOST = os.getenv('PG_HOST', 'postgres-project') 
+PG_DB = os.getenv('PG_DB', 'final_project_db')
+PG_USER = os.getenv('PG_USER', 'airflow')
+PG_PASS = os.getenv('PG_PASS', 'airflow')
+
 DB_CONFIG = {
-    "dbname": "final_project_db",
-    "user": "airflow",
-    "password": "airflow",
-    "host": "localhost",
+    "dbname": PG_DB,
+    "user": PG_USER,
+    "password": PG_PASS,
+    "host": PG_HOST, # PENTING: Mengarah ke container project
     "port": "5432"
 }
 
@@ -86,18 +95,29 @@ def check_fraud_rules(data):
     return status, reasons
 
 # --- MAIN PROGRAM ---
+print(f"🟢 CONSUMER INIT: Kafka at {KAFKA_HOST} | DB at {PG_HOST}")
+
 consumer = KafkaConsumer(
     'orders',
-    bootstrap_servers=['localhost:9092'],
-    auto_offset_reset='latest',
+    bootstrap_servers=[f'{KAFKA_HOST}:9092'],
+    
+    auto_offset_reset='earliest', 
+    
     enable_auto_commit=True,
     value_deserializer=lambda x: json.loads(x.decode('utf-8'))
 )
 
-conn = psycopg2.connect(**DB_CONFIG)
-cursor = conn.cursor()
+# Koneksi ke DB
+try:
+    conn = psycopg2.connect(**DB_CONFIG)
+    cursor = conn.cursor()
+    print("🟢 DB Connected Successfully")
+except Exception as e:
+    print(f"🔴 DB Connection Failed: {e}")
+    exit(1)
 
 try:
+    print("🟢 CONSUMER READY: Menunggu data...")
     for message in consumer:
         data = message.value
         
@@ -126,6 +146,8 @@ try:
 
 except KeyboardInterrupt:
     print("Stop Consumer.")
+except Exception as e:
+    print(f"Error Consumer Loop: {e}")
 finally:
-    cursor.close()
-    conn.close()
+    if 'cursor' in locals(): cursor.close()
+    if 'conn' in locals(): conn.close()
