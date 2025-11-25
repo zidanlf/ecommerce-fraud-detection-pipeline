@@ -17,8 +17,8 @@ def ingest_discounts():
     
     for row in data:
         sql = """
-            INSERT INTO vouchers (voucher_code, voucher_name, discount_type, discount_value, valid_until) 
-            VALUES (%s, %s, %s, %s, %s) 
+            INSERT INTO vouchers (voucher_code, voucher_name, discount_type, discount_value, valid_until, created_date) 
+            VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP) 
             ON CONFLICT (voucher_code) DO NOTHING
         """
         cursor.execute(sql, (

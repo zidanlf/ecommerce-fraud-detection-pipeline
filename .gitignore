@@ -1,4 +1,7 @@
 .env
 keys/
+key/
+*.json
+gcp_key.json
 postgres-project-data/
 postgres-airflow-data/

@@ -38,7 +38,7 @@ with DAG('0_init_schema', default_args=default_args, schedule_interval='@once', 
         """
     )
     
-    # Tabel Vouchers (Baru)
+    # Tabel Vouchers (TAMBAH created_date)
     create_vouchers = PostgresOperator(
         task_id='create_vouchers',
         postgres_conn_id='postgres_default',
@@ -48,12 +48,13 @@ with DAG('0_init_schema', default_args=default_args, schedule_interval='@once', 
                 voucher_name VARCHAR(100),
                 discount_type VARCHAR(20),
                 discount_value INT,
-                valid_until DATE
+                valid_until DATE,
+                created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """
     )
 
-    # Tabel Orders (Tanpa Foreign Key dulu agar aman streaming)
+    # Tabel Orders
     create_orders = PostgresOperator(
         task_id='create_orders',
         postgres_conn_id='postgres_default',
