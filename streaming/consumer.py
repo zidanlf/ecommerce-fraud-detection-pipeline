@@ -3,7 +3,7 @@ from kafka import KafkaConsumer
 from datetime import datetime
 
 # --- CONFIG ---
-WEBHOOK = "https://discord.com/api/webhooks/1441332811796578416/2YH6t5qs6qPpkFTFhqwh3_Nue49wpT2cWIljnSHOtwwk_yt-1LLdNDY5N3NioM5byd3Q"
+DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL')
 DB_DSN = f"dbname={os.getenv('PG_DB','final_project_db')} user={os.getenv('PG_USER','airflow')} password={os.getenv('PG_PASS','airflow')} host={os.getenv('PG_HOST','postgres-project')} port=5432"
 SQL_INSERT = "INSERT INTO orders (order_id, user_id, product_id, quantity, amount, voucher_code, country, created_date, status) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (order_id) DO NOTHING"
 
@@ -32,7 +32,7 @@ def alert_discord(data, reasons):
             ]
         }]
     }
-    try: requests.post(WEBHOOK, json=payload)
+    try: requests.post(DISCORD_WEBHOOK_URL, json=payload)
     except: pass
 
 # --- MAIN ---
