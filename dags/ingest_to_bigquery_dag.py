@@ -1,143 +1,164 @@
+import os
+import logging
+import requests
+import pandas as pd
+import pendulum
+from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from google.cloud import bigquery
-from datetime import datetime, timedelta
-import pandas as pd
-import requests
-import os
+from google.api_core.exceptions import NotFound
 
-# --- KONFIGURASI ---
-PROJECT_ID = "finpro-purwadhika"
+# --- CONFIGURATION ---
+PROJECT_ID = os.getenv('GCP_PROJECT_ID', 'jcdeah-006') 
 DATASET_ID = "zidan_finpro"
 DISCORD_WEBHOOK = os.getenv('DISCORD_WEBHOOK_URL')
 
-# --- ALERTING FUNCTION ---
-def on_failure_callback(context):
-    """Kirim notifikasi ke Discord saat DAG Gagal"""
-    task_instance = context.get('task_instance')
-    task_name = task_instance.task_id
-    dag_name = task_instance.dag_id
-    error_msg = str(context.get('exception'))
-    
-    payload = {
-        "username": "Airflow Bot",
-        "embeds": [{
-            "title": "❌ DAG FAILED",
-            "color": 15158332, # Merah
-            "fields": [
-                {"name": "DAG", "value": dag_name, "inline": True},
-                {"name": "Task", "value": task_name, "inline": True},
-                {"name": "Error", "value": error_msg[:200]} # Potong biar gak kepanjangan
-            ]
-        }]
-    }
-    try:
-        requests.post(DISCORD_WEBHOOK, json=payload)
-    except:
-        pass
+PK_MAPPING = {
+    'users': 'user_id',
+    'products': 'product_id',
+    'orders': 'order_id',
+    'vouchers': 'voucher_code'
+}
 
-# --- CORE ETL FUNCTION ---
-def load_table_to_bq(table_name, **kwargs):
-    # 1. Setup Koneksi
-    pg_hook = PostgresHook(postgres_conn_id='postgres_default')
-    bq_client = bigquery.Client()
-    
-    # 2. Logic Filter H-1 (Kemarin)
-    # Execution Date di Airflow itu biasanya H-1 dari waktu jalan sebenernya.
-    # Kita ambil tanggal eksekusi data.
-    execution_date = kwargs['ds'] 
-    
-    print(f"\n[INFO] Processing Table: {table_name} for Date: {execution_date}")
-    
-    # 3. Query Postgres
-    sql = f"""
-        SELECT * FROM {table_name}
-        WHERE DATE(created_date) = '{execution_date}'
-    """
-    
-    # Khusus tabel dimensi (users/products/vouchers), mungkin kita mau ambil semua (Full Load)
-    # atau incremental. Sesuai soal: "Data pada setiap tabel di filter per hari (H-1)"
-    # Jadi kita pakai filter di atas.
-    
-    df = pg_hook.get_pandas_df(sql)
-    
-    if df.empty:
-        print(f"[WARN] No data found for {table_name} on {execution_date}. Skipping.")
+logger = logging.getLogger("airflow.task")
+
+# --- ALERTING UTILITIES ---
+def send_discord_alert(context, status_type):
+    """Generic function to send alerts (Failure/Retry)"""
+    if not DISCORD_WEBHOOK:
         return
 
-    # 4. Data Type Fixing (Penting untuk BigQuery)
-    # Pastikan created_date jadi datetime
+    ti = context.get('task_instance')
+    color = 15158332 if status_type == "FAILED" else 16776960
+    
+    payload = {
+        "username": "Airflow Monitor",
+        "embeds": [{
+            "title": f"DAG {status_type}",
+            "color": color,
+            "fields": [
+                {"name": "DAG", "value": ti.dag_id, "inline": True},
+                {"name": "Task", "value": ti.task_id, "inline": True},
+                {"name": "Try", "value": f"{ti.try_number}", "inline": True},
+                {"name": "Execution Date", "value": context.get('ds'), "inline": True},
+                {"name": "Exception", "value": str(context.get('exception'))[:300]}
+            ],
+            "timestamp": datetime.utcnow().isoformat()
+        }]
+    }
+    
+    try:
+        requests.post(DISCORD_WEBHOOK, json=payload, timeout=10)
+    except Exception as e:
+        logger.error(f"Failed to send Discord alert: {e}")
+
+# --- CORE ETL LOGIC ---
+def etl_postgres_to_bq(table_name, **kwargs):
+    
+    # 1. LATENCY CHECK (Skip if delayed > 2 mins)
+    expected_run = kwargs['data_interval_end']
+    current_time = pendulum.now("UTC")
+    latency_minutes = (current_time - expected_run).in_minutes()
+
+    logger.info(f"Schedule: {expected_run} | Current: {current_time} | Latency: {latency_minutes} min")
+
+    if latency_minutes > 2:
+        logger.warning("Latency threshold exceeded (2 min). Skipping ETL process to maintain schedule integrity.")
+        return "Skipped (Late Run)"
+
+    # 2. INITIALIZE CONNECTIONS
+    pg_hook = PostgresHook(postgres_conn_id='postgres_default')
+    bq_client = bigquery.Client(project=PROJECT_ID)
+    execution_date = kwargs['ds']
+    primary_key = PK_MAPPING.get(table_name)
+
+    logger.info(f"Starting ETL for {table_name} on {execution_date}")
+
+    # 3. EXTRACT (Postgres)
+    sql = f"SELECT * FROM {table_name} WHERE DATE(created_date) = '{execution_date}'"
+    df = pg_hook.get_pandas_df(sql)
+
+    if df.empty:
+        logger.warning(f"No data found for {table_name} on {execution_date}. Skipping.")
+        return
+
+    # 4. TRANSFORM (Pandas)
     if 'created_date' in df.columns:
         df['created_date'] = pd.to_datetime(df['created_date'])
 
-    # 5. Load to BigQuery
-    table_id = f"{PROJECT_ID}.{DATASET_ID}.{table_name}"
-    
-    job_config = bigquery.LoadJobConfig(
-        # Schema Partitioning (Sesuai Soal)
-        time_partitioning=bigquery.TimePartitioning(
-            type_=bigquery.TimePartitioningType.DAY,
-            field="created_date"  # Partisi berdasarkan kolom ini
-        ),
-        write_disposition="WRITE_APPEND", # Incremental Load (Append)
-    )
+    # 5. LOAD TO STAGING (BigQuery)
+    staging_id = f"{PROJECT_ID}.{DATASET_ID}.{table_name}_staging"
+    target_id = f"{PROJECT_ID}.{DATASET_ID}.{table_name}"
 
-    job = bq_client.load_table_from_dataframe(
-        df, table_id, job_config=job_config
-    )
+    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
+    job = bq_client.load_table_from_dataframe(df, staging_id, job_config=job_config)
+    job.result()
+    logger.info(f"Loaded {len(df)} rows to staging: {staging_id}")
+
+    # 6. ENSURE TARGET TABLE EXISTS
+    try:
+        bq_client.get_table(target_id)
+    except NotFound:
+        logger.info(f"Target table not found. Creating partitioned table: {target_id}")
+        schema = bq_client.get_table(staging_id).schema
+        table = bigquery.Table(target_id, schema=schema)
+        table.time_partitioning = bigquery.TimePartitioning(
+            type_=bigquery.TimePartitioningType.DAY, field="created_date"
+        )
+        bq_client.create_table(table)
+
+    # 7. MERGE (UPSERT STRATEGY)
+    schema = bq_client.get_table(staging_id).schema
+    cols = [field.name for field in schema]
+    update_clause = ", ".join([f"T.{c}=S.{c}" for c in cols if c != primary_key])
+    insert_cols = ", ".join(cols)
+    insert_vals = ", ".join([f"S.{c}" for c in cols])
+
+    merge_query = f"""
+        MERGE `{target_id}` T
+        USING `{staging_id}` S
+        ON T.{primary_key} = S.{primary_key}
+        WHEN MATCHED THEN
+            UPDATE SET {update_clause}
+        WHEN NOT MATCHED THEN
+            INSERT ({insert_cols}) VALUES ({insert_vals})
+    """
     
-    job.result() # Tunggu sampai selesai
-    
-    print(f"[SUCCESS] Loaded {len(df)} rows to {table_id}")
+    bq_client.query(merge_query).result()
+    logger.info(f"Merge completed successfully for {table_name}")
+
+    # 8. CLEANUP
+    bq_client.delete_table(staging_id)
+    logger.info("Staging table cleaned up.")
 
 # --- DAG DEFINITION ---
 default_args = {
     'owner': 'zidan',
     'start_date': datetime(2025, 1, 1),
-    'retries': 1,
+    'retries': 2,
     'retry_delay': timedelta(minutes=5),
-    'on_failure_callback': on_failure_callback # Pasang Alert Discord
+    'on_failure_callback': lambda context: send_discord_alert(context, "FAILED"),
+    'on_retry_callback': lambda context: send_discord_alert(context, "RETRY")
 }
 
 with DAG(
     '2_ingest_to_bigquery',
     default_args=default_args,
-    schedule_interval='0 1 * * *', # Jalan jam 1 pagi setiap hari
-    catchup=False
+    description='Incremental load Postgres to BigQuery with Merge Strategy',
+    schedule_interval='0 8 * * *',
+    catchup=False,
+    tags=['etl', 'production']
 ) as dag:
 
-    # Task 1: Load Users
-    t_users = PythonOperator(
-        task_id='load_users',
-        python_callable=load_table_to_bq,
-        op_kwargs={'table_name': 'users'},
-        provide_context=True
-    )
+    tasks = {}
+    for table in PK_MAPPING.keys():
+        tasks[table] = PythonOperator(
+            task_id=f'load_{table}',
+            python_callable=etl_postgres_to_bq,
+            op_kwargs={'table_name': table},
+            provide_context=True
+        )
 
-    # Task 2: Load Products
-    t_products = PythonOperator(
-        task_id='load_products',
-        python_callable=load_table_to_bq,
-        op_kwargs={'table_name': 'products'},
-        provide_context=True
-    )
-
-    # Task 3: Load Orders (Streaming Result)
-    t_orders = PythonOperator(
-        task_id='load_orders',
-        python_callable=load_table_to_bq,
-        op_kwargs={'table_name': 'orders'},
-        provide_context=True
-    )
-    
-    # Task 4: Load Vouchers
-    t_vouchers = PythonOperator(
-        task_id='load_vouchers',
-        python_callable=load_table_to_bq,
-        op_kwargs={'table_name': 'vouchers'},
-        provide_context=True
-    )
-
-    # Bisa jalan paralel
-    [t_users, t_products, t_orders, t_vouchers]
+    [tasks['users'], tasks['products'], tasks['vouchers']] >> tasks['orders']
