@@ -102,7 +102,7 @@ try:
         print(f"{datetime.now().strftime('%H:%M:%S'):<20} | {data['order_id']:<10} | {data['user_id']:<6} | {country:<4} | {amount:<12} | {log_status}")
 
         counter += 1
-        time.sleep()
+        time.sleep(6)
 
 except KeyboardInterrupt:
     print("\n[STOP] Producer stopped by user.")
