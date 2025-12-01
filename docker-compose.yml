@@ -13,12 +13,12 @@ x-airflow-common: &airflow-common
     - AIRFLOW_CONN_POSTGRES_DEFAULT=postgresql://airflow:airflow@postgres-project:5432/final_project_db
     - PYTHONPATH=/opt/airflow
     - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/keys/gcp_key.json
-    - ./fraud_analytics:/opt/airflow/fraud_analytics
   volumes:
     - ./dags:/opt/airflow/dags
     - ./scripts:/opt/airflow/scripts
     - ./streaming:/opt/airflow/streaming
     - ./keys:/opt/airflow/keys
+    - ./fraud_analytics:/opt/airflow/fraud_analytics
   depends_on:
     postgres-airflow:
       condition: service_healthy
@@ -85,6 +85,7 @@ services:
   airflow-webserver:
     <<: *airflow-common
     container_name: airflow_webserver
+    hostname: airflow-webserver
     command: webserver
     ports:
       - "8080:8080"
@@ -101,6 +102,7 @@ services:
   airflow-scheduler:
     <<: *airflow-common
     container_name: airflow_scheduler
+    hostname: airflow-scheduler
     command: scheduler
     restart: always
     depends_on:

@@ -1,26 +1,23 @@
-name: 'fraud_analytics'
-version: '1.0.0'
+name: fraud_analytics
+version: 1.0.0
 config-version: 2
 
-profile: 'fraud_analytics_profile'
+profile: fraud_analytics_profile
 
 model-paths: ["models"]
-analysis-paths: ["analyses"]
-test-paths: ["tests"]
-seed-paths: ["seeds"]
-macro-paths: ["macros"]
-snapshot-paths: ["snapshots"]
-
-target-path: "target"
-clean-targets:
-  - "target"
-  - "dbt_packages"
+target-path: target
 
 models:
   fraud_analytics:
+    +persist_docs:
+      relation: false
+      columns: false
     staging:
       +materialized: view
+      +schema: staging
     core:
       +materialized: table
+      +schema: core
     marts:
       +materialized: table
+      +schema: marts

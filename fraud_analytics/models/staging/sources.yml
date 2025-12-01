@@ -1,7 +1,9 @@
 version: 2
+
 sources:
-  - name: zidan_finpro      # Dataset sumber dari Airflow
-    database: zidan_finpro
+  - name: zidan_finpro
+    database: finpro-purwadhika
+    schema: zidan_finpro 
     tables:
       - name: users
       - name: products
