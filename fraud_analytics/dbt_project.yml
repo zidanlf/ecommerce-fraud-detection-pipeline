@@ -1,23 +1,5 @@
 name: fraud_analytics
 version: 1.0.0
 config-version: 2
-
-profile: fraud_analytics_profile
-
+profile: fraud_analytics
 model-paths: ["models"]
-target-path: target
-
-models:
-  fraud_analytics:
-    +persist_docs:
-      relation: false
-      columns: false
-    staging:
-      +materialized: view
-      +schema: staging
-    core:
-      +materialized: table
-      +schema: core
-    marts:
-      +materialized: table
-      +schema: marts

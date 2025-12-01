@@ -1,12 +1,15 @@
-fraud_analytics:
-  target: dev
+fraud_analytics_profile:
   outputs:
     dev:
       type: bigquery
       method: service-account
       project: finpro-purwadhika
       dataset: zidan_finpro
-      location: us-west1
-      keyfile: /opt/airflow/keys/gcp_key.json
       threads: 1
-      timeout_seconds: 3600
+      timeout_seconds: 300
+      location: us-west1
+      priority: interactive
+      keyfile: /opt/airflow/keys/gcp_key.json
+      job_execution_timeout_seconds: 300
+      job_retries: 1
+  target: dev

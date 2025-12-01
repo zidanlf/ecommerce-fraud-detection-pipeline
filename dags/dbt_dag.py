@@ -16,7 +16,6 @@ with DAG(
     description='DBT Fraud Analytics',
     schedule_interval='0 9 * * *',
     catchup=False,
-    tags=['dbt', 'analytics']
 ) as dag:
 
     dbt_run = BashOperator(

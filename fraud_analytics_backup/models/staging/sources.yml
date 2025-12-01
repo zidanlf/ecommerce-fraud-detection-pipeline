@@ -5,6 +5,6 @@ sources:
     database: finpro-purwadhika
     schema: zidan_finpro
     tables:
-      - name: orders
       - name: users
       - name: products
+      - name: orders
