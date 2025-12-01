@@ -13,6 +13,7 @@ x-airflow-common: &airflow-common
     - AIRFLOW_CONN_POSTGRES_DEFAULT=postgresql://airflow:airflow@postgres-project:5432/final_project_db
     - PYTHONPATH=/opt/airflow
     - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/keys/gcp_key.json
+    - ./fraud_analytics:/opt/airflow/fraud_analytics
   volumes:
     - ./dags:/opt/airflow/dags
     - ./scripts:/opt/airflow/scripts

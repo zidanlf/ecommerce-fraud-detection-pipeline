@@ -1,0 +1,12 @@
+fraud_analytics_profile:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: finpro-purwadhika
+      dataset: zidan_finpro_analytics    # Nama dataset baru di BQ untuk hasil analisa
+      threads: 4
+      keyfile: /opt/airflow/keys/gcp_key.json
+      timeout_seconds: 300
+      location: US

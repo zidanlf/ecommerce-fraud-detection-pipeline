@@ -1,0 +1,8 @@
+version: 2
+sources:
+  - name: zidan_finpro      # Dataset sumber dari Airflow
+    database: zidan_finpro
+    tables:
+      - name: users
+      - name: products
+      - name: orders

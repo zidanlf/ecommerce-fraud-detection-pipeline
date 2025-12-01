@@ -95,7 +95,7 @@ def load_to_bigquery(table_name, **kwargs):
     job = bq_client.load_table_from_dataframe(df, table_id, job_config=job_config)
     job.result()
     
-    logger.info(f"✓ Loaded {len(df)} rows to {table_id}")
+    logger.info(f"Loaded {len(df)} rows to {table_id}")
     return f"Success: {len(df)} rows"
 
 # --- DAG DEFINITION ---
@@ -110,10 +110,9 @@ with DAG(
     '2_ingest_to_bigquery',
     default_args=default_args,
     description='Simple Postgres to BigQuery ETL',
-    schedule_interval='40 8 * * *',
+    schedule_interval='* 1 * * *',
     catchup=True,
-    max_active_runs=1,
-    tags=['etl']
+    max_active_runs=1
 ) as dag:
 
     # Create tasks
