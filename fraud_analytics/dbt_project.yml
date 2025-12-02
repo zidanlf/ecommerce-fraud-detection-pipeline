@@ -1,5 +1,16 @@
-name: fraud_analytics
-version: 1.0.0
+name: 'fraud_analytics'
+version: '1.0.0'
 config-version: 2
-profile: fraud_analytics
+profile: 'fraud_analytics'
 model-paths: ["models"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  fraud_analytics:
+    staging:
+      +materialized: view
+    core:
+      +materialized: table
+    marts:
+      +materialized: table

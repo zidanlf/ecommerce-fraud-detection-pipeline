@@ -1,9 +1,10 @@
 version: 2
+
 sources:
   - name: zidan_finpro
-    database: jcdeah-006
+    database: finpro-purwadhika
     schema: zidan_finpro
     tables:
+      - name: orders
       - name: users
       - name: products
-      - name: orders

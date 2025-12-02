@@ -4,9 +4,9 @@ fraud_analytics:
     dev:
       type: bigquery
       method: service-account
-      project: jcdeah-006
-      dataset: zidan_finpro_analytics
-      threads: 4
+      project: finpro-purwadhika
+      dataset: zidan_finpro
+      location: us-west1
       keyfile: /opt/airflow/keys/gcp_key.json
-      timeout_seconds: 300
-      location: asia-southeast2 
+      threads: 1
+      timeout_seconds: 3600

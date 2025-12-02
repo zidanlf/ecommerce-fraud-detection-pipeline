@@ -5,3 +5,4 @@ key/
 gcp_key.json
 postgres-project-data/
 postgres-airflow-data/
+fraud_analytics/

@@ -7,4 +7,4 @@ select
     country,
     status,
     cast(created_date as timestamp) as created_at
-from `finpro-purwadhika`.`zidan_finpro`.`orders`
+from {{ source('zidan_finpro', 'orders') }}
