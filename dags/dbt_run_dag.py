@@ -17,7 +17,7 @@ with DAG(
     default_args=default_args,
     description='Run DBT Models Daily at 02:00 WIB',
     # 02:00 WIB = 19:00 UTC (Hari Sebelumnya)
-    schedule_interval='0 6 * * *', 
+    schedule_interval='0 10 * * *', 
     catchup=False,
     max_active_runs=1,
 ) as dag:

@@ -13,6 +13,7 @@ x-airflow-common: &airflow-common
     - AIRFLOW_CONN_POSTGRES_DEFAULT=postgresql://airflow:airflow@postgres-project:5432/final_project_db
     - PYTHONPATH=/opt/airflow
     - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/keys/gcp_key.json
+    - AIRFLOW__WEBSERVER__SECRET_KEY=123456789
   volumes:
     - ./dags:/opt/airflow/dags
     - ./scripts:/opt/airflow/scripts
@@ -95,7 +96,6 @@ services:
         condition: service_healthy
       postgres-project:
         condition: service_healthy
-      # TAMBAHAN PENTING: Tunggu sampai init selesai sukses!
       airflow-init:
         condition: service_completed_successfully
 
@@ -110,7 +110,6 @@ services:
         condition: service_healthy
       postgres-project:
         condition: service_healthy
-      # TAMBAHAN PENTING: Tunggu sampai init selesai sukses!
       airflow-init:
         condition: service_completed_successfully
 

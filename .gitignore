@@ -5,4 +5,7 @@ key/
 gcp_key.json
 postgres-project-data/
 postgres-airflow-data/
-fraud_analytics/
+target/
+dbt_packages/
+logs/
+.user.yml

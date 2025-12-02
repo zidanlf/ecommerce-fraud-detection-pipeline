@@ -32,7 +32,7 @@ def ingest_users(**kwargs):
 
     # 2. Execute Ingestion
     start_id = random.randint(1, 2000)
-    data = generate_user_data(start_id=start_id, count=20)
+    data = generate_user_data(start_id=start_id, count=10)
     
     pg_hook = PostgresHook(postgres_conn_id='postgres_default')
     

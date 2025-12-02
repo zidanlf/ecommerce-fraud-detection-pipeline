@@ -30,7 +30,7 @@ def ingest_products(**kwargs):
 
     # 2. Execute Ingestion
     start_id = random.randint(1, 1000)
-    data = generate_product_data(start_id=start_id, count=10)
+    data = generate_product_data(start_id=start_id, count=7)
     
     pg_hook = PostgresHook(postgres_conn_id='postgres_default')
     
