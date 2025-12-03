@@ -127,7 +127,7 @@ with DAG(
     '2_ingest_to_bigquery',
     default_args=default_args,
     description='Postgres to BigQuery ETL',
-    schedule_interval='10 0 * * *',
+    schedule_interval='10 3 * * *',
     catchup=False,
     max_active_runs=1
 ) as dag:

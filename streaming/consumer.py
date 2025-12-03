@@ -15,7 +15,7 @@ def check_fraud(data):
         (data['country'] != 'ID', "Foreign Location"),
         (data['quantity'] > 100 and 0 <= hour < 4, f"High Qty ({data['quantity']}) at Night"),
         (amt > 100_000_000 and 0 <= hour < 4, "High Amount at Night"),
-        (data['voucher_code'] and amt < 50_000, "Voucher Abuse")
+        (data['voucher_code'] and amt < 5_000_000, "Voucher Abuse")
     ]
     reasons = [r for cond, r in rules if cond]
     return ("frauds", reasons) if reasons else ("genuine", [])
