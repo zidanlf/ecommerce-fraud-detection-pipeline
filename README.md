@@ -163,6 +163,8 @@ Pipeline ini menghasilkan tabel analitik (Marts) di BigQuery untuk menjawab pert
 
 Berikut adalah tampilan dashboard Metabase yang memvisualisasikan hasil analisis fraud detection:
 
+<img width="1424" height="1318" alt="dashboard" src="https://github.com/user-attachments/assets/1c3c9005-f02d-4dc0-a49e-1388a7cf99b8" />
+<img width="1420" height="582" alt="dashboard1" src="https://github.com/user-attachments/assets/d0bbd203-93ba-44dc-9d84-e8df9b8ac01f" />
 
 
 ## 👤 Author
