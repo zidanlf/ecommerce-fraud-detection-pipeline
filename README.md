@@ -4,21 +4,25 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Airflow](https://img.shields.io/badge/Apache%20Airflow-2.6.3-017CEE?logo=apacheairflow&logoColor=white)
 ![Kafka](https://img.shields.io/badge/Apache%20Kafka-Streaming-231F20?logo=apachekafka&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?logo=postgresql&logoColor=white)
 ![DBT](https://img.shields.io/badge/dbt-BigQuery-FF694B?logo=dbt&logoColor=white)
 ![BigQuery](https://img.shields.io/badge/Google%20BigQuery-Data%20Warehouse-4285F4?logo=googlecloud&logoColor=white)
+![Metabase](https://img.shields.io/badge/Metabase-BI%20%26%20Analytics-509EE3?logo=metabase&logoColor=white)
 
 ## 📖 Overview
 
 **Ecommerce Fraud Detection Pipeline** adalah solusi *End-to-End Data Engineering* yang menggabungkan pemrosesan **Real-time Streaming** dan **Batch ETL** untuk mendeteksi transaksi curang (fraud) pada platform e-commerce.
 
-Project ini mensimulasikan data transaksi, melakukan deteksi anomali secara *real-time*, mengirimkan notifikasi peringatan (alerts), dan melakukan transformasi data analitik untuk kebutuhan pelaporan bisnis.
+Project ini mensimulasikan data transaksi, melakukan deteksi anomali secara *real-time*, mengirimkan notifikasi peringatan (alerts), melakukan transformasi data analitik, dan menyajikan **visualisasi dashboard** untuk kebutuhan pelaporan bisnis.
 
 ### 🎯 Key Features
 * **Real-time Fraud Detection:** Mendeteksi pola mencurigakan (transaksi tengah malam, lokasi asing, penyalahgunaan voucher) menggunakan **Apache Kafka** dan **Python Consumers**.
 * **Instant Alerting:** Mengirim notifikasi otomatis ke **Discord** saat fraud terdeteksi.
-* **Hybrid Ingestion:** * *Streaming*: Order transactions via Kafka.
+* **Hybrid Ingestion:**
+    * *Streaming*: Order transactions via Kafka.
     * *Batch*: User, Product, & Voucher data via **Apache Airflow** (Hourly).
 * **Data Warehouse & Modeling:** ETL harian dari PostgreSQL ke **Google BigQuery**, ditransformasi menggunakan **DBT** (Data Build Tool) menjadi Star Schema.
+* **Business Intelligence:** Visualisasi data interaktif menggunakan **Metabase** untuk memantau tren fraud dan total kerugian yang diselamatkan.
 * **Containerized Environment:** Seluruh infrastruktur berjalan di atas **Docker**.
 
 ---
@@ -58,11 +62,15 @@ Sistem ini terdiri dari beberapa komponen utama:
 
 1.  **Data Generator (Producer):** Script Python yang mensimulasikan transaksi user menggunakan `Faker`.
 2.  **Streaming Layer:** **Apache Kafka** & Zookeeper menangani antrian data transaksi berkecepatan tinggi.
-3.  **Processing Layer:** * *Consumer:* Membaca data Kafka, mengevaluasi *Fraud Rules*, dan menyimpan ke DB.
+3.  **Processing Layer:**
+    * *Consumer:* Membaca data Kafka, mengevaluasi *Fraud Rules*, dan menyimpan ke DB.
     * *Airflow:* Mengorkestrasi ingest data master dan pemindahan data ke BigQuery.
-4.  **Storage Layer:** * **PostgreSQL:** Operational Database (OLTP).
+4.  **Storage Layer:**
+    * **PostgreSQL:** Operational Database (OLTP).
     * **Google BigQuery:** Analytical Data Warehouse (OLAP).
-5.  **Analytics Layer:** **DBT** mengubah data mentah menjadi Marts siap pakai untuk visualisasi.
+5.  **Analytics & Visualization Layer:**
+    * **DBT:** Mengubah data mentah menjadi Marts siap pakai.
+    * **Metabase:** Menyajikan dashboard interaktif dari data hasil olahan DBT.s
 
 ---
 
@@ -87,6 +95,7 @@ Sistem secara otomatis menandai transaksi sebagai **FRAUD** jika memenuhi kriter
 * **Database:** PostgreSQL 15
 * **Data Warehouse:** Google BigQuery
 * **Transformation:** DBT (Data Build Tool)
+* **Visualization:** Metabase
 * **Infrastructure:** Docker & Docker Compose
 * **Alerting:** Discord Webhook
 
@@ -121,6 +130,7 @@ Sistem secara otomatis menandai transaksi sebagai **FRAUD** jika memenuhi kriter
 4.  **Access Services**
     * **Airflow UI:** `http://localhost:8080` (User: `admin`, Pass: `admin`).
     * **PostgreSQL:** `localhost:5432` (Project DB) & `5434` (Airflow DB).
+    * **Metabase:** `http://localhost:3000` (Setup koneksi ke BigQuery via UI).
 
 5.  **Run Pipeline**
     * Aktifkan DAG `0_init_schema` di Airflow untuk membuat tabel.
@@ -133,9 +143,10 @@ Sistem secara otomatis menandai transaksi sebagai **FRAUD** jika memenuhi kriter
         docker exec -it airflow-scheduler python /opt/airflow/streaming/consumer.py
         ```
  6. **Run Batch Processing**
-    * 1_ingest_users, 1_ingest_products, 1_ingest_discounts (Generate Master Data).
-    * 2_ingest_to_bigquery (Load data harian ke BigQuery).
-    * 3_dbt_fraud_analytics (Jalankan transformasi data).
+    * `1_ingest_users`, `1_ingest_products`, `1_ingest_discounts` (Generate Master Data).
+    * `2_ingest_to_bigquery` (Load data harian ke BigQuery).
+    * `3_dbt_fraud_analytics` (Jalankan transformasi data).
+
 ---
 
 ## 📊 Data Models (DBT)
@@ -147,6 +158,12 @@ Pipeline ini menghasilkan tabel analitik (Marts) di BigQuery untuk menjawab pert
 * **`mart_fraud_analysis`**: Profiling user yang melakukan fraud beserta lokasinya.
 
 ---
+
+## 📈 Dashboard Result
+
+Berikut adalah tampilan dashboard Metabase yang memvisualisasikan hasil analisis fraud detection:
+
+
 
 ## 👤 Author
 
