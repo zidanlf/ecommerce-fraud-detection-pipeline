@@ -48,6 +48,7 @@ Struktur direktori diatur secara modular untuk memudahkan maintenance dan deploy
 │   └── consumer.py                 # Kafka Consumer (Fraud Detection Logic)
 ├── docker-compose.yml              # Definisi Container Services
 ├── .gitignore.yml
+├── Dockerfile
 └── requirements.txt                # Dependensi Python
 ```
 ---
