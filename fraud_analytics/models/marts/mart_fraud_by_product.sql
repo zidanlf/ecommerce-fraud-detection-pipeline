@@ -1,4 +1,3 @@
--- mart_fraud_by_product.sql
 select
     category,
     product_name,

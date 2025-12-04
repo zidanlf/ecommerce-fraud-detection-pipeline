@@ -1,4 +1,3 @@
--- stg_users.sql
 select
     user_id,
     name,

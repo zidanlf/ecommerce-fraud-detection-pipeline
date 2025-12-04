@@ -1,8 +1,8 @@
 version: 2
 sources:
   - name: zidan_finpro
-    database: jcdeah-006
-    schema: zidan_finpro
+    database: jcdeah-006 # GCP Project ID
+    schema: zidan_finpro # BigQuery Dataset
     tables:
       - name: users
       - name: products
