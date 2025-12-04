@@ -1,3 +1,4 @@
+--- stg_orders.sql
 select
     order_id,
     user_id,

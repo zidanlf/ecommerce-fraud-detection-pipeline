@@ -19,6 +19,5 @@ select
     total_revenue,
     total_transaction_value,
     total_fraud_cases,
-    -- Hitung persentase uang yang diselamatkan dibanding total transaksi
     round((total_saved_amount / nullif(total_transaction_value, 0)) * 100, 2) as saved_rate_percentage
 from summary

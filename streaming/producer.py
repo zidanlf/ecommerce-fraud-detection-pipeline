@@ -8,7 +8,6 @@ fake = Faker('id_ID')
 KAFKA_HOST = os.getenv('KAFKA_HOST', 'kafka')
 REFRESH_INTERVAL = 50
 
-# Connection String
 DB_DSN = f"dbname={os.getenv('PG_DB','final_project_db')} " \
          f"user={os.getenv('PG_USER','airflow')} " \
          f"password={os.getenv('PG_PASS','airflow')} " \
@@ -44,7 +43,7 @@ producer = KafkaProducer(
     acks=1, retries=3
 )
 
-# Initial Load
+# --- FETCH INITIAL REFERENCES ---
 user_ids, product_ids, voucher_codes = fetch_references()
 
 if not user_ids or not product_ids:
@@ -58,25 +57,23 @@ print("-" * 80)
 try:
     counter = 0
     while True:
-        # 1. Refresh References periodically
+        # Refresh References periodically
         if counter >= REFRESH_INTERVAL:
             user_ids, product_ids, voucher_codes = fetch_references()
             print(f"[INFO] Refreshed reference data from database.")
             counter = 0
 
-        # 2. Generate Data Logic
+        # Generate Data Logic
         hour = random.randint(0, 23)
         voucher = random.choice(voucher_codes) if (voucher_codes and random.random() < 0.2) else None
         
         # Fraud Simulation Logic
-        # 90% Normal, 10% Abnormal Quantity
         quantity = random.randint(1, 5) if random.random() < 0.9 else random.randint(100, 150)
         
         base_price = random.randint(50000, 2000000)
         amount = base_price * quantity
-        if voucher: amount = int(amount * 0.9) # 10% Discount logic
+        if voucher: amount = int(amount * 0.9)
         
-        # Country Distribution (85% ID, 15% Others)
         country = random.choices(['ID', 'SG', 'US', 'MY'], weights=[85, 5, 5, 5])[0]
 
         data = {
@@ -90,10 +87,9 @@ try:
             "created_date": datetime.now().replace(hour=hour).strftime("%Y-%m-%dT%H:%M:%S")
         }
 
-        # 3. Send to Kafka
         producer.send('orders', value=data)
 
-        # 4. Clean Logging (Columnar Format)
+        # Clean Logging (Columnar Format)
         log_status = "SENT"
         # Mark suspicious activity in log (High Amt or High Qty or Foreign)
         if quantity > 100 or amount > 100000000 or country != 'ID':

@@ -30,7 +30,7 @@ def send_discord_alert(context, status_type):
 # --- ETL FUNCTION ---
 def load_to_bigquery(table_name, **kwargs):
     
-    # 1. EXTRACT
+    # Extract
     pg_hook = PostgresHook(postgres_conn_id='postgres_default')
     execution_date = kwargs['ds'] 
     
@@ -43,15 +43,12 @@ def load_to_bigquery(table_name, **kwargs):
         logger.warning(f"No data for {table_name}")
         return "No data"
 
-    # --- 2. TRANSFORM (FIX TIPE DATA) ---
-    # List kolom tanggal yang harus jadi TIMESTAMP
+    # --- TRANSFORM ---
     target_date_cols = ['created_date', 'valid_until', 'registered_date']
     
     for col in target_date_cols:
         if col in df.columns:
-            # Ubah ke datetime
             df[col] = pd.to_datetime(df[col], errors='coerce')
-            # PENTING: Paksa ke UTC Timezone agar dianggap TIMESTAMP oleh BigQuery
             if df[col].dt.tz is None:
                 df[col] = df[col].dt.tz_localize('UTC')
             else:
@@ -63,13 +60,11 @@ def load_to_bigquery(table_name, **kwargs):
         if col in df.columns:
              df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
 
-    # --- 3. PREPARE SCHEMA (SEBELUM LOAD) ---
-    # Kita definisikan schema secara eksplisit agar tidak salah tebak
+    # --- PREPARE SCHEMA ---
     bq_schema = []
     for col, dtype in df.dtypes.items():
-        # Mapping tipe data
         if pd.api.types.is_datetime64_any_dtype(dtype): 
-            bq_type = "TIMESTAMP" # Timezone aware
+            bq_type = "TIMESTAMP"
         elif pd.api.types.is_integer_dtype(dtype): 
             bq_type = "INTEGER"
         elif pd.api.types.is_float_dtype(dtype): 
@@ -79,11 +74,10 @@ def load_to_bigquery(table_name, **kwargs):
         
         bq_schema.append(bigquery.SchemaField(col, bq_type))
 
-    # --- 4. BIGQUERY CONNECTION ---
+    # --- BIGQUERY CONNECTION ---
     bq_client = bigquery.Client(project=PROJECT_ID)
     table_id = f"{PROJECT_ID}.{DATASET_ID}.{table_name}"
-    
-    # Cek/Buat Tabel (Idempotent)
+
     try:
         bq_client.get_table(table_id)
     except NotFound:
@@ -95,12 +89,11 @@ def load_to_bigquery(table_name, **kwargs):
         )
         bq_client.create_table(table)
 
-    # --- 5. LOAD (PARTITION OVERWRITE) ---
+    # --- LOAD (PARTITION OVERWRITE) ---
     partition_suffix = execution_date.replace('-', '')
     target_table_id = f"{table_id}${partition_suffix}"
     
     job_config = bigquery.LoadJobConfig(
-        # PENTING: Masukkan schema yang sudah kita buat tadi ke sini
         schema=bq_schema, 
         write_disposition="WRITE_TRUNCATE",
         time_partitioning=bigquery.TimePartitioning(
@@ -127,7 +120,7 @@ with DAG(
     '2_ingest_to_bigquery',
     default_args=default_args,
     description='Postgres to BigQuery ETL',
-    schedule_interval='10 3 * * *',
+    schedule_interval='55 3 * * *',
     catchup=False,
     max_active_runs=1
 ) as dag:

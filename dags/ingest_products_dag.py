@@ -17,7 +17,7 @@ def ingest_products(**kwargs):
     Ingest product data into Postgres.
     Skips execution if schedule latency exceeds 2 minutes.
     """
-    # 1. Check Schedule Latency
+    # Check Schedule Latency
     execution_date = kwargs['data_interval_end']
     current_time = pendulum.now("UTC")
     latency_minutes = (current_time - execution_date).in_minutes()
@@ -28,7 +28,7 @@ def ingest_products(**kwargs):
         logger.warning("Latency threshold exceeded (2 min). Skipping data ingestion.")
         return "Skipped"
 
-    # 2. Execute Ingestion
+    # Execute Ingestion
     start_id = random.randint(1, 1000)
     data = generate_product_data(start_id=start_id, count=7)
     

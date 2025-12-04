@@ -4,7 +4,7 @@ from datetime import datetime
 
 fake = Faker('id_ID')
 
-# 1. GENERATE USERS
+# --- GENERATE USERS ---
 def generate_user_data(start_id=1, count=1):
     users = []
     for i in range(count):
@@ -17,7 +17,7 @@ def generate_user_data(start_id=1, count=1):
         })
     return users
 
-# 2. GENERATE PRODUCTS
+# --- GENERATE PRODUCTS ---
 def generate_product_data(start_id=1, count=1):
     products = []
     categories = ['Elektronik', 'Fashion', 'Dapur', 'Otomotif', 'Hobi']
@@ -32,7 +32,7 @@ def generate_product_data(start_id=1, count=1):
         })
     return products
 
-# 3. GENERATE VOUCHERS (DISKON)
+# --- GENERATE VOUCHERS (DISKON) ---
 def generate_voucher_data(count=1):
     vouchers = []
     types = ['PERCENT', 'FIXED']

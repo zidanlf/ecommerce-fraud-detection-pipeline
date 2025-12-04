@@ -18,7 +18,7 @@ def ingest_discounts(**kwargs):
     Ingest voucher data into Postgres.
     Execution is skipped if the schedule latency exceeds 2 minutes.
     """
-    # 1. Check Schedule Latency
+    # Check Schedule Latency
     execution_date = kwargs['data_interval_end']
     current_time = pendulum.now("UTC")
     latency_minutes = (current_time - execution_date).in_minutes()
@@ -29,7 +29,7 @@ def ingest_discounts(**kwargs):
         logger.warning("Latency threshold exceeded (2 min). Skipping data ingestion.")
         return "Skipped"
 
-    # 2. Execute Data Ingestion
+    # Execute Data Ingestion
     data = generate_voucher_data(count=3)
     pg_hook = PostgresHook(postgres_conn_id='postgres_default')
     

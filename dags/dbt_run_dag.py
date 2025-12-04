@@ -16,7 +16,7 @@ with DAG(
     '3_dbt_fraud_analytics',
     default_args=default_args,
     description='Run DBT Models Daily at 02:00 WIB',
-    schedule_interval='15 3 * * *', 
+    schedule_interval='0 4 * * *', 
     catchup=False,
     max_active_runs=1,
 ) as dag:
@@ -27,7 +27,7 @@ with DAG(
         bash_command=f'cd {DBT_DIR} && dbt debug --profiles-dir .'
     )
 
-    # Task 2: Install Dependencies (Good Practice)
+    # Task 2: Install Dependencies
     dbt_deps = BashOperator(
         task_id='dbt_deps',
         bash_command=f'cd {DBT_DIR} && dbt deps --profiles-dir .'
@@ -39,7 +39,7 @@ with DAG(
         bash_command=f'cd {DBT_DIR} && dbt run --profiles-dir .'
     )
 
-    # Task 4: Test Data (Optional)
+    # Task 4: Test Data
     dbt_test = BashOperator(
         task_id='dbt_test',
         bash_command=f'cd {DBT_DIR} && dbt test --profiles-dir .'

@@ -38,7 +38,7 @@ with DAG('0_init_schema', default_args=default_args, schedule_interval='@once', 
         """
     )
     
-    # Tabel Vouchers (TAMBAH created_date)
+    # Tabel Vouchers
     create_vouchers = PostgresOperator(
         task_id='create_vouchers',
         postgres_conn_id='postgres_default',

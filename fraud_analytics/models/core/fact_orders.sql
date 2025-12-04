@@ -1,3 +1,4 @@
+-- fact_orders.sql
 select
     o.order_id,
     o.user_id,

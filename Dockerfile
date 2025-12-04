@@ -1,6 +1,6 @@
 FROM apache/airflow:2.6.3-python3.9
 
-# Switch to root to install system packages
+# Switch to root to install system package
 USER root
 
 # Install git (required by DBT)

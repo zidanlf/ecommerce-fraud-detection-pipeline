@@ -4,8 +4,8 @@ fraud_analytics:
     dev:
       type: bigquery
       method: service-account
-      project: jcdeah-006
-      dataset: zidan_finpro_analytics
+      project: jcdeah-006 # GCP Project ID
+      dataset: zidan_finpro_analytics # BigQuery Dataset
       threads: 4
       keyfile: /opt/airflow/keys/gcp_key.json
       timeout_seconds: 300
