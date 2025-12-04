@@ -41,10 +41,13 @@ Struktur direktori diatur secara modular untuk memudahkan maintenance dan deploy
 │   └── dbt_project.yml
 ├── scripts/
 │   └── data_generator.py           # Faker logic untuk generate dummy data
+├── keys/
+│   └── gcp_key.json                # Kunci JSON GCP
 ├── streaming/
 │   ├── producer.py                 # Kafka Producer (Simulasi Transaksi)
 │   └── consumer.py                 # Kafka Consumer (Fraud Detection Logic)
 ├── docker-compose.yml              # Definisi Container Services
+├── .gitignore.yml
 └── requirements.txt                # Dependensi Python
 ```
 ---
@@ -71,7 +74,7 @@ Sistem secara otomatis menandai transaksi sebagai **FRAUD** jika memenuhi kriter
 | **Foreign Location** | Transaksi berasal dari luar negara (Country != 'ID'). |
 | **High Qty at Night** | Jumlah barang > 100 unit & Transaksi dilakukan pukul 00:00 - 04:00. |
 | **High Amount at Night** | Total harga > Rp 100 Juta & Transaksi dilakukan pukul 00:00 - 04:00. |
-| **Voucher Abuse** | Menggunakan kode voucher pada transaksi kecil (< Rp 50.000). |
+| **Voucher Abuse** | Menggunakan kode voucher pada transaksi kecil (< Rp 5.000.000). |
 
 ---
 
